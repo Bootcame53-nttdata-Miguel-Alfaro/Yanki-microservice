@@ -1,0 +1,412 @@
+openapi: 3.0.0
+info:
+  title: Yanki Wallet Microservice
+  description: Wallet Management Microservice for Yanki
+  version: 1.0.0
+servers:
+  - url: http://localhost:8086
+    description: Local server
+paths:
+  /wallets:
+    post:
+      tags:
+        - wallet
+      summary: Create a new wallet
+      description: Add a new wallet to the system
+      operationId: createWallet
+      requestBody:
+        description: Create a new wallet
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Wallet'
+        required: true
+      responses:
+        "201":
+          description: Wallet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        "405":
+          description: Invalid input
+  /wallets/{phoneNumber}:
+    get:
+      tags:
+        - wallet
+      summary: Get wallet by phone number
+      description: Retrieve details of a wallet by its phone number
+      operationId: getWalletByPhoneNumber
+      parameters:
+        - name: phoneNumber
+          in: path
+          description: Phone number of the wallet to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Wallet retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        "404":
+          description: Wallet not found
+    put:
+      tags:
+        - wallet
+      summary: Associate a debit card to a wallet
+      description: Associate a debit card to an existing wallet
+      operationId: associateCard
+      parameters:
+        - name: phoneNumber
+          in: path
+          description: Phone number of the wallet to associate the card to
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Associated debit card number
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssociateCardRequest'
+        required: true
+      responses:
+        "200":
+          description: Debit card associated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        "404":
+          description: Wallet not found
+  /wallets/{phoneNumber}/balance:
+    get:
+      tags:
+        - wallet
+      summary: Get wallet balance
+      description: Retrieve the balance of a wallet
+      operationId: getWalletBalance
+      parameters:
+        - name: phoneNumber
+          in: path
+          description: Phone number of the wallet
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Wallet balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletBalance'
+        "404":
+          description: Wallet not found
+  /wallets/transactions/{phoneNumber}:
+    get:
+      tags:
+        - transaction
+      summary: Get transactions by phone number
+      description: Retrieve transactions of a wallet by its phone number
+      operationId: getTransactionsByPhoneNumber
+      parameters:
+        - name: phoneNumber
+          in: path
+          description: Phone number of the wallet to retrieve transactions
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        "404":
+          description: Transactions not found
+  /wallets/transactions/{walletId}/deposit:
+    post:
+      tags:
+        - transaction
+      summary: Deposit to a wallet
+      description: Deposit money into a wallet
+      operationId: depositToWallet
+      parameters:
+        - name: walletId
+          in: path
+          description: ID of the wallet to deposit to
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Deposit details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionOperation'
+        required: true
+      responses:
+        "200":
+          description: Deposit successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+  /wallets/transactions/{walletId}/withdraw:
+    post:
+      tags:
+        - transaction
+      summary: Withdraw from a wallet
+      description: Withdraw money from a wallet
+      operationId: withdrawFromWallet
+      parameters:
+        - name: walletId
+          in: path
+          description: ID of the wallet to withdraw from
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Withdrawal details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionOperation'
+        required: true
+      responses:
+        "200":
+          description: Withdrawal successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+  /wallets/document-types:
+    post:
+      tags:
+        - document type
+      summary: Create a new document type
+      description: Add a new document type to the system
+      operationId: createDocumentType
+      requestBody:
+        description: Create a new document type
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentType'
+        required: true
+      responses:
+        "201":
+          description: Document type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentType'
+        "405":
+          description: Invalid input
+  /wallets/document-types/{id}:
+    get:
+      tags:
+        - document type
+      summary: Get document type by ID
+      description: Retrieve details of a document type by its ID
+      operationId: getDocumentTypeById
+      parameters:
+        - name: id
+          in: path
+          description: ID of the document type to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document type retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentType'
+        "404":
+          description: Document type not found
+    delete:
+      tags:
+        - document type
+      summary: Delete a document type
+      description: Remove a document type from the system
+      operationId: deleteDocumentType
+      parameters:
+        - name: id
+          in: path
+          description: ID of the document type to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document type deleted successfully
+        "404":
+          description: Document type not found
+  /wallets/document-types/code/{code}:
+    get:
+      tags:
+        - document type
+      summary: Get document type by code
+      description: Retrieve details of a document type by its code
+      operationId: getDocumentTypeByCode
+      parameters:
+        - name: code
+          in: path
+          description: Code of the document type to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document type retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentType'
+        "404":
+          description: Document type not found
+components:
+  schemas:
+    Wallet:
+      required:
+        - documentTypeCode
+        - dni
+        - phoneNumber
+        - imei
+        - email
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        documentTypeCode:
+          type: string
+          description: Document type code
+        dni:
+          type: string
+          description: DNI of the wallet owner
+        phoneNumber:
+          type: string
+          description: Phone number associated with the wallet
+        imei:
+          type: string
+          description: IMEI of the device
+        associatedDebitCardNumber:
+          type: string
+          description: Associated debit card number
+        isAssociated:
+          type: boolean
+          description: Indicates if a debit card is associated
+        balance:
+          type: number
+          format: double
+          description: Wallet balance
+        email:
+          type: string
+          description: Email of the wallet owner
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation date
+          readOnly: true
+      xml:
+        name: wallet
+    Transaction:
+      type: object
+      required:
+        - phoneNumber
+        - walletId
+        - amount
+        - date
+        - type
+        - description
+      properties:
+        id:
+          type: string
+          readOnly: true
+        phoneNumber:
+          type: string
+          description: Phone number associated with the transaction
+        walletId:
+          type: string
+          description: ID of the wallet associated with the transaction
+        amount:
+          type: number
+          format: double
+          description: Amount of the transaction
+        date:
+          type: string
+          format: date-time
+          description: Date and time of the transaction
+        type:
+          type: string
+          description: Type of the transaction (deposit, withdrawal)
+        description:
+          type: string
+          description: Description of the transaction
+      xml:
+        name: transaction
+    TransactionOperation:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+          description: Amount of transaction
+        description:
+          type: string
+          description: Description of the operation
+      xml:
+        name: transactionOperation
+    WalletBalance:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: Phone number associated with the wallet
+        balance:
+          type: number
+          format: double
+          description: Wallet balance
+      xml:
+        name: walletBalance
+    AssociateCardRequest:
+      type: object
+      properties:
+        associatedDebitCardNumber:
+          type: string
+          description: Associated debit card number
+      xml:
+        name: associateCardRequest
+    DocumentType:
+      required:
+        - name
+        - code
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          description: Name of the document type
+        code:
+          type: string
+          description: Code of the document type
+      xml:
+        name: documentType
+  requestBodies:
+    wallet:
+      description: Wallet object that needs to be added to the database
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Wallet'
