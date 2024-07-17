@@ -25,11 +25,12 @@ public class WalletController implements WalletsApi {
     private final TransactionMapper transactionMapper;
     private final BalanceMapper balanceMapper;
     private final AssociateCardMapper associateCardMapper;
+    private final OperationMapper operationMapper;
 
     public WalletController(DocumentTypeService documentTypeService, WalletService walletService,
                             TransactionService transactionService, DocumentTypeMapper documentTypeMapper,
                             WalletMapper walletMapper, TransactionMapper transactionMapper,
-                            BalanceMapper balanceMapper, AssociateCardMapper associateCardMapper) {
+                            BalanceMapper balanceMapper, AssociateCardMapper associateCardMapper, OperationMapper operationMapper) {
         this.documentTypeService = documentTypeService;
         this.walletService = walletService;
         this.transactionService = transactionService;
@@ -38,6 +39,7 @@ public class WalletController implements WalletsApi {
         this.transactionMapper = transactionMapper;
         this.balanceMapper = balanceMapper;
         this.associateCardMapper = associateCardMapper;
+        this.operationMapper = operationMapper;
     }
 
 
@@ -108,11 +110,6 @@ public class WalletController implements WalletsApi {
     }
 
     @Override
-    public Mono<ResponseEntity<Transaction>> withdrawFromWallet(String walletId, Mono<TransactionOperation> transactionOperation, ServerWebExchange exchange) {
-        return WalletsApi.super.withdrawFromWallet(walletId, transactionOperation, exchange);
-    }
-
-    @Override
     public Mono<ResponseEntity<Wallet>> associateCard(Mono<AssociateCardRequest> associateCardRequest, ServerWebExchange exchange) {
         return walletService.associateCard(associateCardRequest.map(associateCardMapper::toDomain))
                 .map(walletMapper::toModel)
@@ -121,8 +118,20 @@ public class WalletController implements WalletsApi {
     }
 
     @Override
+    public Mono<ResponseEntity<Transaction>> withdrawFromWallet(String walletId, Mono<TransactionOperation> transactionOperation, ServerWebExchange exchange) {
+        return transactionService.withdraw(walletId, transactionOperation.map(operationMapper::toDomain))
+                .map(transactionMapper::toModel)
+                .map(c -> ResponseEntity.status(HttpStatus.OK).body(c))
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)));
+    }
+
+
+    @Override
     public Mono<ResponseEntity<Transaction>> depositToWallet(String walletId, Mono<TransactionOperation> transactionOperation, ServerWebExchange exchange) {
-        return WalletsApi.super.depositToWallet(walletId, transactionOperation, exchange);
+        return transactionService.deposit(walletId, transactionOperation.map(operationMapper::toDomain))
+                .map(transactionMapper::toModel)
+                .map(c -> ResponseEntity.status(HttpStatus.OK).body(c))
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)));
     }
 
 }
