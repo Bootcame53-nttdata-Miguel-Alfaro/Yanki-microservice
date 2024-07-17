@@ -54,13 +54,13 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public Mono<Transaction> withdraw(String phoneNumber, Mono<Operation> operation) {
         return walletRepository.findByPhoneNumber(phoneNumber)
-                .flatMap(wallet -> {
+                .flatMap(wallet -> operation.flatMap(map -> {
                     if (!wallet.getIsAssociated()) {
                         return handleLocalWithdraw(wallet, operation);
                     } else {
-                        return handleAssociatedWithdraw(wallet, operation);
+                        return handleAssociatedWithdraw(wallet, map);
                     }
-                });
+                }));
     }
 
     private Mono<Transaction> handleLocalWithdraw(Wallet wallet, Mono<Operation> operation) {
@@ -73,45 +73,30 @@ public class TransactionServiceImpl implements TransactionService {
         });
     }
 
-    private Mono<Transaction> handleAssociatedWithdraw(Wallet wallet, Mono<Operation> operation) {
+    private Mono<Transaction> handleAssociatedWithdraw(Wallet wallet, Operation operation) {
         String correlationId = UUID.randomUUID().toString();
         Sinks.One<String> sink = Sinks.one();
         responseWithdrawSinks.put(correlationId, sink);
 
-        return operation.flatMap(op -> {
-                    MessageKafka messageKafka = new MessageKafka();
-                    messageKafka.setInformation(wallet.getAssociatedDebitCardNumber());
-                    messageKafka.setPhoneNumber(wallet.getPhoneNumber());
-                    messageKafka.setCorrelationId(correlationId);
-                    messageKafka.setValue(op.getAmount());
-                    return serializeAndSendMessage(messageKafka).thenReturn(sink);
-                }).flatMap(Sinks.Empty::asMono)
-                .flatMap(status -> {
-                    System.out.println("Detail " + status);
-                    if ("Valid".equals(status)) {
-                        return operation.flatMap(op -> {
-                            System.out.println("Creating operation with wallet: " + wallet + " and operation: " + op);
-                            return createOperation(wallet, op, "withdraw")
-                                    .doOnSuccess(transaction -> System.out.println("Transaction created: " + transaction))
-                                    .doOnError(error -> System.err.println("Error creating transaction: " + error.getMessage()));
-                        });
-                    } else {
-                        return Mono.error(new RuntimeException("Invalid debit card number"));
-                    }
-                });
-    }
-
-    private Mono<Void> serializeAndSendMessage(MessageKafka messageKafka) {
+        MessageKafka messageKafka = new MessageKafka();
+        messageKafka.setInformation(wallet.getAssociatedDebitCardNumber());
+        messageKafka.setPhoneNumber(wallet.getPhoneNumber());
+        messageKafka.setCorrelationId(correlationId);
+        messageKafka.setValue(operation.getAmount());
         try {
             String messageJson = objectMapper.writeValueAsString(messageKafka);
             System.out.println("Solicitud enviada a Kafka: " + messageJson);
-            return Mono.fromCallable(() -> {
-                kafkaTemplate.send(REQUEST_TOPIC_WITHDRAW, messageJson);
-                return null;
-            });
+            kafkaTemplate.send(REQUEST_TOPIC_WITHDRAW, messageJson);
         } catch (Exception e) {
             return Mono.error(new RuntimeException("Error serializing MessageKafka", e));
         }
+        return sink.asMono().flatMap(status -> {
+            if ("Valid".equals(status)) {
+                return createOperation(wallet, operation, "withdraw");
+            } else {
+                return Mono.error(new RuntimeException("Invalid debit card number"));
+            }
+        });
     }
 
     public Mono<Transaction> createOperation(Wallet wallet, Operation n, String type) {
