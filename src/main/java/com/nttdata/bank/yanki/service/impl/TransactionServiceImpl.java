@@ -90,8 +90,10 @@ public class TransactionServiceImpl implements TransactionService {
                     System.out.println("Detail " + status);
                     if ("Valid".equals(status)) {
                         return operation.flatMap(op -> {
-                            System.out.println("Wallet: " + wallet.getId() + " : " +op.getAmount()+ " : " +op.getDescription() );
-                            return createOperation(wallet, op, "withdraw");
+                            System.out.println("Creating operation with wallet: " + wallet + " and operation: " + op);
+                            return createOperation(wallet, op, "withdraw")
+                                    .doOnSuccess(transaction -> System.out.println("Transaction created: " + transaction))
+                                    .doOnError(error -> System.err.println("Error creating transaction: " + error.getMessage()));
                         });
                     } else {
                         return Mono.error(new RuntimeException("Invalid debit card number"));
