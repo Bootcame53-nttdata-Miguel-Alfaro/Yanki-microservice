@@ -78,17 +78,16 @@ public class TransactionServiceImpl implements TransactionService {
         Sinks.One<MessageKafka> sink = Sinks.one();
         responseWithdrawSinks.put(correlationId, sink);
 
-        return operation.map(op -> {
+        return operation.flatMap(op -> {
                     MessageKafka messageKafka = new MessageKafka();
                     messageKafka.setInformation(wallet.getAssociatedDebitCardNumber());
                     messageKafka.setPhoneNumber(wallet.getPhoneNumber());
                     messageKafka.setCorrelationId(correlationId);
                     messageKafka.setValue(op.getAmount());
-                    return messageKafka;
-                })
-                .flatMap(this::serializeAndSendMessage)
-                .then(sink.asMono())
+                    return serializeAndSendMessage(messageKafka).thenReturn(sink);
+                }).flatMap(Sinks.Empty::asMono)
                 .flatMap(status -> {
+                    System.out.println("Detail" + status.getValue());
                     if (status.getStatus()) {
                         return handleLocalWithdraw(wallet, operation);
                     } else {
