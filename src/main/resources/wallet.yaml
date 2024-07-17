@@ -53,19 +53,13 @@ paths:
                 $ref: '#/components/schemas/Wallet'
         "404":
           description: Wallet not found
+  /wallets/associate:
     put:
       tags:
         - wallet
       summary: Associate a debit card to a wallet
       description: Associate a debit card to an existing wallet
       operationId: associateCard
-      parameters:
-        - name: phoneNumber
-          in: path
-          description: Phone number of the wallet to associate the card to
-          required: true
-          schema:
-            type: string
       requestBody:
         description: Associated debit card number
         content:
@@ -384,6 +378,9 @@ components:
         associatedDebitCardNumber:
           type: string
           description: Associated debit card number
+        phoneNumber:
+          type: string
+          description: phone number
       xml:
         name: associateCardRequest
     DocumentType:

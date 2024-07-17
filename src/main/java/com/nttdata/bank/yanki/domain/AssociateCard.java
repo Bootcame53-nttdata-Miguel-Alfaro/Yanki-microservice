@@ -9,4 +9,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AssociateCard {
     private String associatedDebitCardNumber;
+    private String phoneNumber;
 }

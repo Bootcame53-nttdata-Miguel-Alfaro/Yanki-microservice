@@ -1,10 +1,7 @@
 package com.nttdata.bank.yanki.controller;
 
 import com.nttdata.bank.yanki.api.WalletsApi;
-import com.nttdata.bank.yanki.mapper.BalanceMapper;
-import com.nttdata.bank.yanki.mapper.DocumentTypeMapper;
-import com.nttdata.bank.yanki.mapper.TransactionMapper;
-import com.nttdata.bank.yanki.mapper.WalletMapper;
+import com.nttdata.bank.yanki.mapper.*;
 import com.nttdata.bank.yanki.model.*;
 import com.nttdata.bank.yanki.service.DocumentTypeService;
 import com.nttdata.bank.yanki.service.TransactionService;
@@ -27,11 +24,12 @@ public class WalletController implements WalletsApi {
     private final WalletMapper walletMapper;
     private final TransactionMapper transactionMapper;
     private final BalanceMapper balanceMapper;
+    private final AssociateCardMapper associateCardMapper;
 
     public WalletController(DocumentTypeService documentTypeService, WalletService walletService,
                             TransactionService transactionService, DocumentTypeMapper documentTypeMapper,
                             WalletMapper walletMapper, TransactionMapper transactionMapper,
-                            BalanceMapper balanceMapper) {
+                            BalanceMapper balanceMapper, AssociateCardMapper associateCardMapper) {
         this.documentTypeService = documentTypeService;
         this.walletService = walletService;
         this.transactionService = transactionService;
@@ -39,7 +37,9 @@ public class WalletController implements WalletsApi {
         this.walletMapper = walletMapper;
         this.transactionMapper = transactionMapper;
         this.balanceMapper = balanceMapper;
+        this.associateCardMapper = associateCardMapper;
     }
+
 
     @Override
     public Mono<ResponseEntity<DocumentType>> createDocumentType(Mono<DocumentType> documentType, ServerWebExchange exchange) {
@@ -113,12 +113,16 @@ public class WalletController implements WalletsApi {
     }
 
     @Override
+    public Mono<ResponseEntity<Wallet>> associateCard(Mono<AssociateCardRequest> associateCardRequest, ServerWebExchange exchange) {
+        return walletService.associateCard(associateCardRequest.map(associateCardMapper::toDomain))
+                .map(walletMapper::toModel)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @Override
     public Mono<ResponseEntity<Transaction>> depositToWallet(String walletId, Mono<TransactionOperation> transactionOperation, ServerWebExchange exchange) {
         return WalletsApi.super.depositToWallet(walletId, transactionOperation, exchange);
     }
 
-    @Override
-    public Mono<ResponseEntity<Wallet>> associateCard(String phoneNumber, Mono<AssociateCardRequest> associateCardRequest, ServerWebExchange exchange) {
-        return WalletsApi.super.associateCard(phoneNumber, associateCardRequest, exchange);
-    }
 }
