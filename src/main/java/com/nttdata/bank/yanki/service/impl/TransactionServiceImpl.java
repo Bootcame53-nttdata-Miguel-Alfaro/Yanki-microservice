@@ -87,9 +87,9 @@ public class TransactionServiceImpl implements TransactionService {
                     return serializeAndSendMessage(messageKafka).thenReturn(sink);
                 }).flatMap(Sinks.Empty::asMono)
                 .flatMap(status -> {
-                    System.out.println("Detail" + status);
+                    System.out.println("Detail " + status);
                     if ("Valid".equals(status)) {
-                        return handleLocalWithdraw(wallet, operation);
+                        return operation.flatMap(op -> createOperation(wallet, op, "withdraw"));
                     } else {
                         return Mono.error(new RuntimeException("Invalid debit card number"));
                     }
