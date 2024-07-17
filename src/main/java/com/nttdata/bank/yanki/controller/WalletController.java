@@ -122,7 +122,10 @@ public class WalletController implements WalletsApi {
         return transactionService.withdraw(walletId, transactionOperation.map(operationMapper::toDomain))
                 .map(transactionMapper::toModel)
                 .map(c -> ResponseEntity.status(HttpStatus.OK).body(c))
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)));
+                .onErrorResume(e -> {
+                    System.out.println("Error: " + e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
+                });
     }
 
 

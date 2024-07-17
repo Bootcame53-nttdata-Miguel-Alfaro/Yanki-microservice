@@ -110,6 +110,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     public Mono<Transaction> createOperation(Wallet wallet, Operation n, String type) {
+        System.out.println("Wallet: " + wallet.getId() + " : " +n.getAmount()+ " : " +n.getDescription() );
         return walletRepository.save(wallet)
                 .then(Mono.defer(() -> {
                     Transaction transaction = new Transaction();
