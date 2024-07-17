@@ -30,7 +30,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final ConcurrentMap<String, Sinks.One<MessageKafka>> responseWithdrawSinks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Sinks.One<String>> responseWithdrawSinks = new ConcurrentHashMap<>();
 
     private static final String REQUEST_TOPIC_WITHDRAW = "transaction_withdraw_request";
     private static final String RESPONSE_TOPIC_WITHDRAW = "transaction_withdraw_response";
@@ -75,7 +75,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     private Mono<Transaction> handleAssociatedWithdraw(Wallet wallet, Mono<Operation> operation) {
         String correlationId = UUID.randomUUID().toString();
-        Sinks.One<MessageKafka> sink = Sinks.one();
+        Sinks.One<String> sink = Sinks.one();
         responseWithdrawSinks.put(correlationId, sink);
 
         return operation.flatMap(op -> {
@@ -87,8 +87,8 @@ public class TransactionServiceImpl implements TransactionService {
                     return serializeAndSendMessage(messageKafka).thenReturn(sink);
                 }).flatMap(Sinks.Empty::asMono)
                 .flatMap(status -> {
-                    System.out.println("Detail" + status.getValue());
-                    if (status.getStatus()) {
+                    System.out.println("Detail" + status);
+                    if ("Valid".equals(status)) {
                         return handleLocalWithdraw(wallet, operation);
                     } else {
                         return Mono.error(new RuntimeException("Invalid debit card number"));
@@ -138,9 +138,10 @@ public class TransactionServiceImpl implements TransactionService {
             throw new RuntimeException("Error deserializing MessageKafka", e);
         }
         String correlationId = messageKafka.getCorrelationId();
-        Sinks.One<MessageKafka> sink = responseWithdrawSinks.remove(correlationId);
+        String status = messageKafka.getStatus() ? "Valid" : "Invalid";
+        Sinks.One<String> sink = responseWithdrawSinks.remove(correlationId);
         if (sink != null) {
-            sink.tryEmitValue(messageKafka).orThrow();
+            sink.tryEmitValue(status).orThrow();
         }
     }
 }
